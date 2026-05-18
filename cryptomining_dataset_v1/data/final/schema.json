@@ -1,0 +1,684 @@
+{
+  "columns": [
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "metadata",
+      "name": "sample_id",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "metadata",
+      "name": "schema_version",
+      "padding": "mining_dataset_v1"
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "source",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "source_role",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "source_file",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "source_record_id",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "original_label",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "int8",
+      "group": "label",
+      "name": "label",
+      "padding": -1
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "float32",
+      "group": "label",
+      "name": "label_confidence",
+      "padding": 1.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float64",
+      "group": "flow",
+      "name": "time_first",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float64",
+      "group": "flow",
+      "name": "time_last",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "flow",
+      "name": "duration",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "string",
+      "group": "flow",
+      "name": "proto",
+      "padding": "tcp"
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "int64",
+      "group": "privacy",
+      "name": "src_ip_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "int64",
+      "group": "privacy",
+      "name": "dst_ip_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "flow",
+      "name": "src_port",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "flow",
+      "name": "dst_port",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "int64",
+      "group": "privacy",
+      "name": "flow_key_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "flow",
+      "name": "bytes_total",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "flow",
+      "name": "bytes_fwd",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "flow",
+      "name": "bytes_bwd",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "flow",
+      "name": "packets_total",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "flow",
+      "name": "packets_fwd",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "flow",
+      "name": "packets_bwd",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "flow",
+      "name": "byte_rate",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "flow",
+      "name": "packet_rate",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "flow",
+      "name": "bytes_ratio_fwd",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "flow",
+      "name": "packets_ratio_fwd",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_mean",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_std",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_min",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_max",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_p10",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_p50",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "pkt_len_p90",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_mean",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_std",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_min",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_max",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_p10",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_p50",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_p90",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_cv",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_entropy",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_zero_ratio",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "iat_small_ratio_10ms",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "fwd_iat_mean",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "bwd_iat_mean",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "fwd_bwd_iat_ratio",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "timing",
+      "name": "burst_count",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "burst_mean_packets",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "timing",
+      "name": "burst_max_packets",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "timing",
+      "name": "periodicity_autocorr_lag",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "periodicity_autocorr_score",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "timing",
+      "name": "periodicity_fft_peak",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "tls",
+      "name": "has_tls",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "string",
+      "group": "tls",
+      "name": "tls_source",
+      "padding": "none"
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "tls",
+      "name": "tls_version_id",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "tls_version_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "tls",
+      "name": "cipher_id",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "cipher_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "sni_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "tls",
+      "name": "sni_len",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "tls",
+      "name": "sni_num_labels",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "tls",
+      "name": "sni_entropy",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "sni_tld_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "tls",
+      "name": "alpn_id",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "alpn_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "ja3_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "tls",
+      "name": "ja3s_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "tls",
+      "name": "tls_resumed",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "tls",
+      "name": "tls_established",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "tls",
+      "name": "tls_handshake_seen",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "certificate",
+      "name": "cert_observed",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "certificate",
+      "name": "cert_subject_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int64",
+      "group": "certificate",
+      "name": "cert_issuer_hash64",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "float32",
+      "group": "certificate",
+      "name": "cert_validity_days",
+      "padding": 0.0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "certificate",
+      "name": "cert_key_alg_id",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "certificate",
+      "name": "cert_key_length",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "certificate",
+      "name": "cert_sig_alg_id",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "certificate",
+      "name": "cert_san_count",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "certificate",
+      "name": "cert_self_signed",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "certificate",
+      "name": "cert_chain_len",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int32",
+      "group": "sequence",
+      "name": "seq_len_stored",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "list<int32>",
+      "group": "sequence",
+      "name": "seq_pkt_len",
+      "padding": []
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "list<int32>",
+      "group": "sequence",
+      "name": "seq_signed_pkt_len",
+      "padding": []
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "list<int8>",
+      "group": "sequence",
+      "name": "seq_direction",
+      "padding": []
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "list<float32>",
+      "group": "sequence",
+      "name": "seq_iat",
+      "padding": []
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "quality",
+      "name": "packet_seq_available",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "quality",
+      "name": "tls_metadata_available",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "quality",
+      "name": "tls_full_available",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "quality",
+      "name": "timing_full_available",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": true,
+      "dtype": "int8",
+      "group": "quality",
+      "name": "possible_tls_port",
+      "padding": 0
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "quality",
+      "name": "extract_status",
+      "padding": "ok"
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "quality",
+      "name": "quality_notes",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "string",
+      "group": "provenance",
+      "name": "hard_negative_type",
+      "padding": ""
+    },
+    {
+      "can_use_for_model_input": false,
+      "dtype": "float32",
+      "group": "training_hint",
+      "name": "sample_weight_suggested",
+      "padding": 1.0
+    }
+  ],
+  "schema_version": "mining_dataset_v1"
+}

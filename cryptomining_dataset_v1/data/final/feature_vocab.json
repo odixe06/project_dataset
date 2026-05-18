@@ -1,0 +1,22 @@
+{
+  "alpn": {
+    "unknown": 0
+  },
+  "cert_key_alg": {
+    "unknown": 0
+  },
+  "cert_sig_alg": {
+    "unknown": 0
+  },
+  "cipher": {
+    "unknown": 0
+  },
+  "tls_version": {
+    "SSLv3": 1,
+    "TLSv10": 2,
+    "TLSv11": 3,
+    "TLSv12": 4,
+    "TLSv13": 5,
+    "unknown": 0
+  }
+}
