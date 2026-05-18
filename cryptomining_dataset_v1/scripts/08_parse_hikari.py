@@ -11,6 +11,7 @@ from dataset_common import (
     flow_key_text,
     hmac_hash64,
     int_or_zero,
+    load_build_config,
     load_privacy_config,
     normalize_dataframe,
     parser_with_root,
@@ -34,11 +35,9 @@ def load_zeek_helpers():
 
 
 def is_benign(row: dict) -> bool:
-    vals = [
-        str(first_present(row, ["Label", "label", "traffic_category", "traffic_type"], "")).lower(),
-        str(first_present(row, ["Label.1", "category"], "")).lower(),
-    ]
-    return any("benign" in v or v == "0" for v in vals)
+    category = str(first_present(row, ["traffic_category", "traffic_type", "category"], "")).strip().lower()
+    label = str(first_present(row, ["Label", "label"], "")).strip().lower()
+    return category == "benign" and label in {"0", "0.0", "benign"}
 
 
 def main() -> None:
@@ -50,6 +49,7 @@ def main() -> None:
     parser.add_argument("--chunksize", type=int, default=100000)
     args = parser.parse_args()
     salt = load_privacy_config()["salt"]
+    limit = int(load_build_config().get("source_row_limits", {}).get("hikari2021") or 0)
     flowmeter = rel(args.flowmeter)
     candidates = [flowmeter] if flowmeter.exists() else sorted(rel("data/raw/non_mining/hikari2021/extracted").rglob("*.csv"))
     rows = []
@@ -59,22 +59,24 @@ def main() -> None:
             for row in chunk.to_dict(orient="records"):
                 if not is_benign(row):
                     continue
-                src_ip = str(first_present(row, ["src_ip", "Source IP", "Src IP", "SRC_IP"], ""))
-                dst_ip = str(first_present(row, ["dst_ip", "Destination IP", "Dst IP", "DST_IP"], ""))
-                src_port = int_or_zero(first_present(row, ["src_port", "Source Port", "Src Port", "SRC_PORT"], 0))
-                dst_port = int_or_zero(first_present(row, ["dst_port", "Destination Port", "Dst Port", "DST_PORT"], 0))
+                src_ip = str(first_present(row, ["originh", "src_ip", "Source IP", "Src IP", "SRC_IP"], ""))
+                dst_ip = str(first_present(row, ["responh", "dst_ip", "Destination IP", "Dst IP", "DST_IP"], ""))
+                src_port = int_or_zero(first_present(row, ["originp", "src_port", "Source Port", "Src Port", "SRC_PORT"], 0))
+                dst_port = int_or_zero(first_present(row, ["responp", "dst_port", "Destination Port", "Dst Port", "DST_PORT"], 0))
                 proto = str(first_present(row, ["Protocol", "proto", "PROTOCOL"], "tcp")).lower()
-                duration = float_or_zero(first_present(row, ["Flow Duration", "duration", "DURATION"], 0))
-                packets_fwd = int_or_zero(first_present(row, ["Tot Fwd Pkts", "packets_fwd", "PACKETS"], 0))
-                packets_bwd = int_or_zero(first_present(row, ["Tot Bwd Pkts", "packets_bwd", "PACKETS_REV"], 0))
-                bytes_fwd = int_or_zero(first_present(row, ["TotLen Fwd Pkts", "bytes_fwd", "BYTES"], 0))
-                bytes_bwd = int_or_zero(first_present(row, ["TotLen Bwd Pkts", "bytes_bwd", "BYTES_REV"], 0))
+                duration = float_or_zero(first_present(row, ["flow_duration", "Flow Duration", "duration", "DURATION"], 0))
+                packets_fwd = int_or_zero(first_present(row, ["fwd_pkts_tot", "Tot Fwd Pkts", "packets_fwd", "PACKETS"], 0))
+                packets_bwd = int_or_zero(first_present(row, ["bwd_pkts_tot", "Tot Bwd Pkts", "packets_bwd", "PACKETS_REV"], 0))
+                bytes_fwd = int_or_zero(first_present(row, ["fwd_pkts_payload.tot", "TotLen Fwd Pkts", "bytes_fwd", "BYTES"], 0))
+                bytes_bwd = int_or_zero(first_present(row, ["bwd_pkts_payload.tot", "TotLen Bwd Pkts", "bytes_bwd", "BYTES_REV"], 0))
+                has_tls = 1 if dst_port in {443, 8443, 9443} else 0
+                if not has_tls:
+                    continue
                 bytes_total = bytes_fwd + bytes_bwd
                 packets_total = packets_fwd + packets_bwd
                 key = flow_key_text(src_ip, src_port, dst_ip, dst_port, proto)
                 key_hash = hmac_hash64(key, salt)
                 benign_flow_keys.add(key_hash)
-                has_tls = 1 if dst_port in {443, 8443, 9443} else 0
                 record_id = str(first_present(row, ["uid", "ID", "id", "Flow ID", "flow_id"], "")) or f"{path.name}:{len(rows)}"
                 rows.append(
                     {
@@ -111,6 +113,12 @@ def main() -> None:
                         "quality_notes": "HIKARI flowmeter row filtered to benign; run Zeek parser for full TLS metadata when PCAP is available.",
                     }
                 )
+                if limit and len(rows) >= limit:
+                    break
+            if limit and len(rows) >= limit:
+                break
+        if limit and len(rows) >= limit:
+            break
     zeek_root = rel(args.zeek)
     if zeek_root.exists() and benign_flow_keys:
         helpers = load_zeek_helpers()

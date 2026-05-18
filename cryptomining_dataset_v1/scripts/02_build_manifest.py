@@ -33,15 +33,20 @@ def main() -> None:
     src_cfg = load_yaml("configs/sources.yaml")
     input_root = rel(args.input_root)
     records = []
-    for path in sorted(p for p in input_root.rglob("*") if p.is_file()):
+    for path in sorted(p for p in input_root.rglob("*") if p.is_file() and p.suffix != ".aria2"):
         source = source_for(path)
         cfg = src_cfg.get(source, {})
+        try:
+            size_bytes = path.stat().st_size
+            sha256 = sha256_file(path)
+        except FileNotFoundError:
+            continue
         records.append(
             {
                 "source": source,
                 "path": str(path.relative_to(rel("."))),
-                "size_bytes": path.stat().st_size,
-                "sha256": sha256_file(path),
+                "size_bytes": size_bytes,
+                "sha256": sha256,
                 "file_type": detect_file_type(path),
                 "downloaded_at": now_iso(),
                 "record_url": cfg.get("record_url", ""),
@@ -54,4 +59,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

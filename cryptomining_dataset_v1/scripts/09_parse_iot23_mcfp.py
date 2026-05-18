@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import re
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from dataset_common import (
@@ -11,10 +12,10 @@ from dataset_common import (
     flow_key_text,
     hmac_hash64,
     int_or_zero,
+    load_build_config,
     load_privacy_config,
     normalize_dataframe,
     parser_with_root,
-    read_zeek_log,
     rel,
     write_parquet,
 )
@@ -30,17 +31,42 @@ def label_allowed(label: str) -> bool:
     return bool(text) and not any(term in text for term in MINING_TERMS)
 
 
+def iter_iot_rows(path: Path):
+    fields = []
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if not line:
+                continue
+            if line.startswith("#fields"):
+                fields = line.split("\t")[1:]
+                if fields and "   " in fields[-1]:
+                    fields = fields[:-1] + re.split(r"\s{2,}", fields[-1].strip())
+                continue
+            if line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if fields and len(parts) == len(fields) - 2 and "   " in parts[-1]:
+                parts = parts[:-1] + re.split(r"\s{2,}", parts[-1].strip())
+            if not fields or len(parts) != len(fields):
+                continue
+            yield dict(zip(fields, parts))
+
+
 def main() -> None:
     parser = parser_with_root("Parse IoT-23 MCFP conn.log.labeled files into label=0 canonical parquet.")
     parser.add_argument("--input", default="data/raw/non_mining/iot23_mcfp/extracted")
     parser.add_argument("--output", default="data/interim/canonical_by_source/iot23_mcfp.parquet")
     args = parser.parse_args()
     salt = load_privacy_config()["salt"]
+    limits = load_build_config().get("source_row_limits", {})
+    max_rows = int(limits.get("iot23_mcfp") or 0)
+    max_per_file = int(limits.get("iot23_mcfp_per_file") or 0)
     rows = []
     paths = list(rel(args.input).rglob("conn.log.labeled")) + list(rel(args.input).rglob("conn.log"))
     for path in sorted(set(paths)):
-        df = read_zeek_log(path)
-        for row in df.to_dict(orient="records"):
+        kept_for_file = 0
+        for row in iter_iot_rows(path):
             original_label = str(first_present(row, ["label", "detailed-label", "tunnel_parents"], "unknown"))
             if not label_allowed(original_label):
                 continue
@@ -93,6 +119,11 @@ def main() -> None:
                     "extract_status": "ok",
                 }
             )
+            kept_for_file += 1
+            if (max_per_file and kept_for_file >= max_per_file) or (max_rows and len(rows) >= max_rows):
+                break
+        if max_rows and len(rows) >= max_rows:
+            break
     df = normalize_dataframe(pd.DataFrame(rows))
     write_parquet(df, args.output)
     print(f"wrote {len(df)} IoT-23 rows to {args.output}")
@@ -100,4 +131,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

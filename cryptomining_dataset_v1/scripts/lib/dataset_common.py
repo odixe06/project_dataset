@@ -63,6 +63,9 @@ def load_build_config() -> dict[str, Any]:
 
 def load_privacy_config() -> dict[str, Any]:
     cfg = load_yaml("configs/privacy.yaml")
+    local_path = rel("configs/privacy.local.yaml")
+    if local_path.exists():
+        cfg.update(load_yaml(local_path))
     salt = str(cfg.get("salt", "")).strip()
     if not salt or salt in {"CHANGE_ME_LOCAL_ONLY", "replace-with-local-secret"}:
         env_salt = os.environ.get("DATASET_PRIVACY_SALT", "").strip()
@@ -203,6 +206,9 @@ def parse_sequence(value: Any) -> list[float]:
     text = str(value).strip()
     if not text or text.lower() in {"nan", "none", "null", "[]"}:
         return []
+    if "|" in text:
+        text = text.strip("[]()")
+        return [float_or_zero(p) for p in text.split("|") if p != ""]
     try:
         parsed = ast.literal_eval(text)
         if isinstance(parsed, (list, tuple)):
@@ -350,8 +356,12 @@ def fft_peak(values: list[float]) -> float:
     return float(mag[1:].max())
 
 
-def normalize_row(row: dict[str, Any], schema_path: str | Path = "configs/schema.yaml") -> dict[str, Any]:
-    schema_version, columns = load_schema(schema_path)
+def normalize_row(
+    row: dict[str, Any],
+    schema_path: str | Path = "configs/schema.yaml",
+    schema_cache: tuple[str, list[dict[str, Any]]] | None = None,
+) -> dict[str, Any]:
+    schema_version, columns = schema_cache or load_schema(schema_path)
     out: dict[str, Any] = {}
     row = dict(row)
     row.setdefault("schema_version", schema_version)
@@ -369,8 +379,9 @@ def normalize_row(row: dict[str, Any], schema_path: str | Path = "configs/schema
 
 def normalize_dataframe(df: pd.DataFrame, schema_path: str | Path = "configs/schema.yaml") -> pd.DataFrame:
     require_pandas()
-    rows = [normalize_row(r, schema_path) for r in df.to_dict(orient="records")]
-    cols = schema_column_names(schema_path)
+    schema_cache = load_schema(schema_path)
+    rows = [normalize_row(r, schema_path, schema_cache) for r in df.to_dict(orient="records")]
+    cols = [c["name"] for c in schema_cache[1]]
     return pd.DataFrame(rows, columns=cols)
 
 

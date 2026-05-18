@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime, timezone
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
@@ -11,6 +12,7 @@ from dataset_common import (
     flow_key_text,
     hmac_hash64,
     int_or_zero,
+    load_build_config,
     load_privacy_config,
     normalize_dataframe,
     parse_sequence,
@@ -29,27 +31,125 @@ def csv_files(root: Path) -> list[Path]:
     return sorted([p for p in root.rglob("*") if "".join(p.suffixes).lower().endswith((".csv", ".csv.gz"))])
 
 
+def logical_row(row: dict) -> dict:
+    out = {}
+    for key, value in row.items():
+        logical = str(key).strip().split()[-1].lower()
+        out[logical] = value
+    return out
+
+
+NEEDED_LOGICAL_COLUMNS = {
+    "bytes",
+    "bytes_rev",
+    "time_first",
+    "time_last",
+    "packets",
+    "packets_rev",
+    "dst_port",
+    "src_port",
+    "protocol",
+    "label",
+    "ppi_pkt_directions",
+    "ppi_pkt_lengths",
+    "ppi_pkt_times",
+}
+
+
+def use_cesnet_column(name: str) -> bool:
+    return str(name).strip().split()[-1].lower() in NEEDED_LOGICAL_COLUMNS
+
+
+def timestamp_or_zero(value) -> float:
+    if value is None or str(value).strip() == "":
+        return 0.0
+    numeric = float_or_zero(value)
+    if numeric:
+        return numeric
+    try:
+        dt = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return float(dt.timestamp())
+    except ValueError:
+        return 0.0
+
+
+def parse_time_sequence(value) -> list[float]:
+    if value is None:
+        return []
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null", "[]"}:
+        return []
+    parts = [p for p in text.strip("[]()").split("|") if p != ""]
+    return [timestamp_or_zero(p) for p in parts]
+
+
+def seconds_of_day(value: str) -> float:
+    text = str(value).strip()
+    try:
+        time_part = text.split("T", 1)[1] if "T" in text else text
+        time_part = time_part.rstrip("Z")
+        hh = int(time_part[0:2])
+        mm = int(time_part[3:5])
+        ss = int(time_part[6:8])
+        frac = 0.0
+        if len(time_part) > 8 and time_part[8] == ".":
+            digits = []
+            for ch in time_part[9:]:
+                if not ch.isdigit():
+                    break
+                digits.append(ch)
+            if digits:
+                frac = float("0." + "".join(digits))
+        return hh * 3600.0 + mm * 60.0 + ss + frac
+    except Exception:
+        return timestamp_or_zero(text)
+
+
+def parse_iat_sequence(value, target_len: int) -> list[float]:
+    if target_len <= 0:
+        return []
+    text = str(value or "").strip()
+    if not text or text.lower() in {"nan", "none", "null", "[]"}:
+        return [0.0] * target_len
+    parts = [p for p in text.strip("[]()").split("|") if p != ""]
+    if not parts:
+        return [0.0] * target_len
+    times = [seconds_of_day(p) for p in parts]
+    iat = [0.0]
+    for prev, cur in zip(times, times[1:]):
+        delta = cur - prev
+        if delta < 0:
+            delta += 86400.0
+        iat.append(max(0.0, delta))
+    if len(iat) < target_len:
+        iat.extend([0.0] * (target_len - len(iat)))
+    return iat[:target_len]
+
+
 def row_to_canonical(row: dict, path: Path, salt: str) -> dict | None:
-    label_raw = str(first_present(row, ["LABEL", "Label", "label"], "")).strip()
+    row = logical_row(row)
+    label_raw = str(first_present(row, ["label"], "")).strip()
     if label_raw not in {"Miner", "Other"}:
         return None
     label = 1 if label_raw == "Miner" else 0
-    src_ip = str(first_present(row, ["SRC_IP", "src_ip"], ""))
-    dst_ip = str(first_present(row, ["DST_IP", "dst_ip"], ""))
-    src_port = int_or_zero(first_present(row, ["SRC_PORT", "src_port"], 0))
-    dst_port = int_or_zero(first_present(row, ["DST_PORT", "dst_port"], 0))
-    proto = str(first_present(row, ["PROTOCOL", "proto"], "tcp")).lower()
-    t_first = float_or_zero(first_present(row, ["TIME_FIRST", "time_first", "START_TIME"], 0))
-    t_last = float_or_zero(first_present(row, ["TIME_LAST", "time_last", "END_TIME"], 0))
-    duration = max(0.0, t_last - t_first) if t_last else float_or_zero(first_present(row, ["DURATION", "duration"], 0))
-    bytes_fwd = int_or_zero(first_present(row, ["BYTES", "bytes", "BYTES_FWD"], 0))
-    bytes_bwd = int_or_zero(first_present(row, ["BYTES_REV", "bytes_rev", "BYTES_BWD"], 0))
-    packets_fwd = int_or_zero(first_present(row, ["PACKETS", "packets", "PACKETS_FWD"], 0))
-    packets_bwd = int_or_zero(first_present(row, ["PACKETS_REV", "packets_rev", "PACKETS_BWD"], 0))
-    directions = [int_or_zero(x) for x in parse_sequence(first_present(row, ["PPI_PKT_DIRECTIONS", "PPI_DIRECTIONS"], []))]
-    pkt_len = [int_or_zero(x) for x in parse_sequence(first_present(row, ["PPI_PKT_LENGTHS", "PPI_LENGTHS"], []))]
-    times = parse_sequence(first_present(row, ["PPI_PKT_TIMES", "PPI_TIMES"], []))
-    iat = [0.0] + [max(0.0, b - a) for a, b in zip(times, times[1:])] if times else []
+    src_ip = str(first_present(row, ["src_ip"], ""))
+    dst_ip = str(first_present(row, ["dst_ip"], ""))
+    src_port = int_or_zero(first_present(row, ["src_port"], 0))
+    dst_port = int_or_zero(first_present(row, ["dst_port"], 0))
+    proto_raw = str(first_present(row, ["protocol", "proto"], "tcp")).lower()
+    proto = "tcp" if proto_raw in {"6", "6.0", "tcp"} else proto_raw
+    t_first = timestamp_or_zero(first_present(row, ["time_first", "start_time"], 0))
+    t_last = timestamp_or_zero(first_present(row, ["time_last", "end_time"], 0))
+    duration = max(0.0, t_last - t_first) if t_last else float_or_zero(first_present(row, ["duration"], 0))
+    bytes_fwd = int_or_zero(first_present(row, ["bytes", "bytes_fwd"], 0))
+    bytes_bwd = int_or_zero(first_present(row, ["bytes_rev", "bytes_bwd"], 0))
+    packets_fwd = int_or_zero(first_present(row, ["packets", "packets_fwd"], 0))
+    packets_bwd = int_or_zero(first_present(row, ["packets_rev", "packets_bwd"], 0))
+    directions = [int_or_zero(x) for x in parse_sequence(first_present(row, ["ppi_pkt_directions", "ppi_directions"], []))]
+    pkt_len = [int_or_zero(x) for x in parse_sequence(first_present(row, ["ppi_pkt_lengths", "ppi_lengths"], []))]
+    iat = parse_iat_sequence(first_present(row, ["ppi_pkt_times", "ppi_times"], []), len(pkt_len))
     if not directions and pkt_len:
         directions = [1] * len(pkt_len)
     signed = [int(l) * (1 if int_or_zero(d) >= 0 else -1) for l, d in zip(pkt_len, directions)]
@@ -63,7 +163,7 @@ def row_to_canonical(row: dict, path: Path, salt: str) -> dict | None:
         "source": "cesnet_miner22",
         "source_role": "flow_scale",
         "source_file": str(path),
-        "source_record_id": str(first_present(row, ["ID", "id", "FLOW_ID", "flow_id"], "")),
+        "source_record_id": str(first_present(row, ["__row_index", "id", "flow_id"], "")),
         "original_label": label_raw,
         "label": label,
         "label_confidence": 1.0,
@@ -101,7 +201,7 @@ def row_to_canonical(row: dict, path: Path, salt: str) -> dict | None:
         "seq_direction": directions,
         "seq_iat": iat,
         "packet_seq_available": 1 if pkt_len else 0,
-        "timing_full_available": 1 if pkt_len else 0,
+        "timing_full_available": 1 if pkt_len and any(x > 0 for x in iat) else 0,
         "extract_status": "ok",
         **seq,
     }
@@ -114,13 +214,25 @@ def main() -> None:
     parser.add_argument("--chunksize", type=int, default=100000)
     args = parser.parse_args()
     salt = load_privacy_config()["salt"]
+    limit = int(load_build_config().get("source_row_limits", {}).get("cesnet_miner22") or 0)
     rows = []
     for path in csv_files(rel(args.input)):
-        for chunk in pd.read_csv(path, chunksize=args.chunksize, low_memory=False):
+        chunk_size = min(args.chunksize, limit) if limit else args.chunksize
+        for chunk_index, chunk in enumerate(
+            pd.read_csv(path, chunksize=chunk_size, low_memory=False, usecols=use_cesnet_column)
+        ):
+            chunk = chunk.reset_index().rename(columns={"index": "__row_index"})
+            chunk["__row_index"] = chunk["__row_index"] + (chunk_index * args.chunksize)
             for row in chunk.to_dict(orient="records"):
                 out = row_to_canonical(row, path, salt)
                 if out is not None:
                     rows.append(out)
+                    if limit and len(rows) >= limit:
+                        break
+            if limit and len(rows) >= limit:
+                break
+        if limit and len(rows) >= limit:
+            break
     df = normalize_dataframe(pd.DataFrame(rows))
     write_parquet(df, args.output)
     print(f"wrote {len(df)} CESNET rows to {args.output}")

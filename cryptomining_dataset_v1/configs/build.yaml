@@ -9,6 +9,14 @@ sequence:
   store_iat: true
   store_direction: true
 
+source_row_limits:
+  # Local V1 safety caps for sources that are very large on an 8 GB RAM machine.
+  # Raw files stay intact under data/raw; raise these for a full-size rebuild.
+  cesnet_miner22: 10000
+  hikari2021: 120000
+  iot23_mcfp: 200000
+  iot23_mcfp_per_file: 10000
+
 merge:
   time_tolerance_seconds: 1.0
 
@@ -48,4 +56,3 @@ export:
   format: ["parquet", "csv.gz"]
   parquet_compression: "zstd"
   split_train_test: false
-

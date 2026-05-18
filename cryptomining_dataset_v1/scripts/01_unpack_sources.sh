@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+PYTHON="${PYTHON:-python3}"
 
 unpack_tar() {
   local file="$1"
@@ -39,5 +40,4 @@ else
   printf 'skip missing IoT-23 archive\n'
 fi
 
-python3 scripts/02_build_manifest.py --input-root data/raw --output data/final/manifest.json
-
+"$PYTHON" scripts/02_build_manifest.py --input-root data/raw --output data/final/manifest.json
