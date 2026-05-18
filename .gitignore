@@ -1,0 +1,9 @@
+# Local workspace/session outputs and private files
+local/
+
+# Python virtualenv
+.venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
