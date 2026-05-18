@@ -1,223 +1,524 @@
-# Dataset Description
+# Mô Tả Dataset Cryptomining / Non-Mining V1
 
-## 1. Tổng quan
+## 1. Tổng Quan
 
-`cryptomining_dataset_v1` là bộ dữ liệu flow-level nhị phân cho bài toán phát hiện cryptomining trên lưu lượng mạng. Mỗi mẫu là một bidirectional flow đã được chuẩn hóa về cùng schema, có nhãn `label=1` cho cryptomining và `label=0` cho non-mining hoặc hard negative không liên quan đến mining.
+`cryptomining_dataset_v1` là bộ dữ liệu flow-level cho bài toán phát hiện lưu lượng cryptomining trong traffic mạng. Mỗi dòng trong file chính tương ứng với một bidirectional network flow đã được chuẩn hóa về cùng schema.
 
-Dataset này được xây dựng theo hướng giữ schema cố định cho mọi mẫu, đồng thời bảo toàn thông tin đủ dùng cho huấn luyện mô hình nhưng không lưu các dữ liệu nhạy cảm như IP thô, SNI thô hoặc payload thô trong phần final.
+Nhãn của dataset:
 
-## 2. Nguồn dữ liệu và quy trình xây dựng
+- `label=1`: cryptomining.
+- `label=0`: non-mining, benign hoặc hard negative không liên quan đến mining.
 
-### Nguồn dữ liệu chính
+Mục tiêu của bản V1 là tạo một dataset thống nhất, có provenance rõ ràng, có thể dùng cho cả mô hình tabular và mô hình sequence, đồng thời không xuất dữ liệu nhạy cảm trong thư mục final. Các giá trị như IP thô, SNI thô và raw payload không nằm trong output cuối cùng.
 
-Dataset cuối cùng được tổng hợp từ các nguồn công khai sau:
+Kích thước bản final hiện tại:
 
-- `auto_capture_hf`: PCAP cryptomining TLS từ Hugging Face.
-- `cesnet_miner22`: flow CSV từ DeCryptoDatasets/CESNET-MINER22, có cả nhãn `Miner` và `Other`.
-- `cj_sniffer`: PCAP từ CJ-Sniffer-Dataset, chỉ lấy mẫu `encrypted=yes`.
-- `mineshark_artifact`: artifact của MineShark, chỉ dùng phần `obfuscated` và `perturbed`.
-- `hikari2021`: PCAP và flow ground truth cho lưu lượng non-mining.
-- `iot23_mcfp`: dữ liệu IoT-23 tải qua MCFP, dùng làm non-mining nền và hard negative.
+| Nhóm | Số mẫu |
+|---|---:|
+| Tổng số mẫu | 415,670 |
+| `label=0` | 402,203 |
+| `label=1` | 13,467 |
 
-### Quy trình trích xuất và chuẩn hóa
+Phân bố theo nguồn:
 
-Pipeline xây dựng đi theo các bước chính sau:
+| Source | Số mẫu |
+|---|---:|
+| `hikari2021` | 229,089 |
+| `iot23_mcfp` | 173,114 |
+| `cesnet_miner22` | 10,000 |
+| `mineshark_artifact` | 2,716 |
+| `auto_capture_hf` | 533 |
+| `cj_sniffer` | 218 |
 
-1. Tải và giải nén nguồn dữ liệu vào `data/raw/`.
-2. Tạo manifest thô để ghi lại đường dẫn, kích thước, hash, loại file và nguồn gốc.
-3. Với các nguồn PCAP, chạy Zeek để sinh `conn.log`, `ssl.log`, `x509.log` và các log liên quan nếu có.
-4. Trích packet sequence từ PCAP, sau đó ghép với flow đã parse bằng canonical bidirectional 5-tuple và khoảng giao thời gian phù hợp.
-5. Với các nguồn CSV/artifact, đọc trực tiếp flow features hoặc sequence đã có sẵn, rồi map về cùng schema.
-6. Chuẩn hóa cột, padding giá trị thiếu, hash các trường nhạy cảm bằng HMAC-SHA256 truncated 63-bit, và loại bỏ mọi trường raw không được phép xuất hiện ở final.
-7. Hợp nhất, loại trùng, kiểm tra chất lượng và xuất bộ final.
+## 2. Nguồn Dữ Liệu
 
-### Kết quả cuối cùng
+Dataset được xây dựng từ các nguồn công khai sau.
 
-Toàn bộ pipeline tạo ra 415,670 mẫu, trong đó:
+### `auto_capture_hf`
 
-- `label=0`: 402,203 mẫu.
-- `label=1`: 13,467 mẫu.
+Nguồn: Hugging Face `mdokl/Auto-capture-cryptomining-data`.
 
-Theo nguồn:
+Vai trò trong dataset:
 
-- `hikari2021`: 229,089 mẫu.
-- `iot23_mcfp`: 173,114 mẫu.
+- Đóng góp mẫu cryptomining từ PCAP.
+- Được xử lý bằng Zeek để lấy flow và TLS metadata.
+- Được trích packet sequence từ PCAP.
+
+### `cesnet_miner22`
+
+Nguồn: CESNET-MINER22 / DeCryptoDatasets từ Zenodo.
+
+Vai trò trong dataset:
+
+- Đóng góp flow-scale samples có nhãn `Miner` và `Other`.
+- `Miner` được map thành `label=1`.
+- `Other` được map thành `label=0`.
+- Bản local V1 hiện lấy 10,000 dòng để giữ thời gian build phù hợp với tài nguyên máy hiện tại.
+- PPI arrays được dùng để tạo packet length, direction và timing patterns.
+
+Lưu ý quan trọng: `seq_iat` của CESNET được tính từ `PPI_PKT_TIMES` bằng parser ISO nhẹ theo giây trong ngày, không dùng `pd.to_datetime` từng phần tử. Vì vậy CESNET vẫn giữ được time patterns trong sequence.
+
+### `cj_sniffer`
+
+Nguồn: GitHub `yebof/CJ-Sniffer-Dataset`.
+
+Vai trò trong dataset:
+
+- Đóng góp PCAP cryptomining.
+- Được chạy Zeek và trích packet sequence.
+
+Lưu ý về nhãn `encrypted`: file `labels.csv` trong bản repo hiện tại có `encrypted=no` cho toàn bộ 64 PCAP. Do đó pipeline fallback giữ toàn bộ PCAP CJ-Sniffer như một nguồn cryptomining packet-level, thay vì loại bỏ cả nguồn. Khi sử dụng dataset, nên xem `cj_sniffer` là mining PCAP coverage, không nên diễn giải nó là coverage encrypted-only.
+
+### `mineshark_artifact`
+
+Nguồn: MineShark artifact từ Zenodo.
+
+Vai trò trong dataset:
+
+- Đóng góp mẫu cryptomining đã obfuscated hoặc perturbed.
+- Dùng các artifact/feature có sẵn khi không có PCAP đầy đủ.
+- Một số mẫu có thể không có TLS metadata hoặc packet sequence đầy đủ.
+
+### `hikari2021`
+
+Nguồn: HIKARI-2021 từ Zenodo.
+
+Vai trò trong dataset:
+
+- Đóng góp non-mining/benign TLS traffic.
+- Dùng cả flowmeter CSV và PCAP.
+- PCAP được chạy Zeek để lấy `conn.log`, `ssl.log`, `x509.log`.
+- Packet sequence được trích từ các PCAP HIKARI đã tải và các PCAP anonymized trong ground truth.
+
+### `iot23_mcfp`
+
+Nguồn: IoT-23 từ MCFP.
+
+Vai trò trong dataset:
+
+- Đóng góp non-mining IoT và hard negative không liên quan đến mining.
+- Các label/scenario có dấu hiệu mining, miner, cryptomining, stratum, xmr hoặc monero được loại bỏ.
+- Bản local V1 dùng parser streaming và giới hạn số dòng để tránh đọc toàn bộ hàng trăm triệu dòng vào RAM.
+
+## 3. Quy Trình Xây Dựng Dataset
+
+Pipeline được tổ chức theo các stage trong thư mục `scripts/`.
+
+Các bước chính:
+
+1. Tải nguồn dữ liệu vào `data/raw/`.
+2. Giải nén archive vào vùng raw tương ứng.
+3. Tạo `manifest.json` gồm đường dẫn, kích thước, SHA256, loại file, thời điểm tải, record URL và quyền/licensing.
+4. Với nguồn PCAP, chạy Zeek bằng absolute PCAP path để sinh log flow/TLS.
+5. Parse `conn.log`, `ssl.log`, `x509.log` và optional `dns.log`.
+6. Trích packet sequence bằng parser PCAP, canonical hóa flow key theo bidirectional 5-tuple.
+7. Với nguồn CSV/artifact, map các feature có sẵn về schema chung.
+8. Hash các trường nhạy cảm bằng HMAC-SHA256 truncated 63-bit.
+9. Chuẩn hóa schema, padding giá trị thiếu, merge các nguồn và deduplicate theo `sample_id`.
+10. Validate quality gates và export final artifacts.
+
+Các output cuối cùng nằm trong `data/final/`.
+
+## 4. Mô Tả Chung Về Dữ Liệu Thu Được
+
+Mỗi mẫu là một flow hai chiều, gồm các nhóm thông tin:
+
+- Metadata và provenance.
+- Label.
+- Flow features.
+- Timing patterns.
+- TLS metadata.
+- Certificate metadata.
+- Packet sequence arrays.
+- Quality flags.
+- Training hints.
+
+Một số điểm cần chú ý:
+
+- Dataset chưa chia train/validation/test.
+- Dataset không cân bằng label; `label=0` nhiều hơn `label=1`.
+- TLS metadata không có ở mọi mẫu.
+- Packet sequence không có ở mọi mẫu.
+- Các cột provenance được giữ để audit, nhưng không nên đưa vào model input mặc định.
+- Một số nguồn là PCAP đầy đủ, một số nguồn là flow CSV hoặc artifact, nên mức độ đầy đủ của feature khác nhau theo nguồn.
+
+Coverage hiện tại:
+
+| Coverage | Số mẫu |
+|---|---:|
+| `label=0`, không TLS | 173,114 |
+| `label=0`, có TLS | 229,089 |
+| `label=1`, không TLS | 13,383 |
+| `label=1`, có TLS | 84 |
+
+TLS full metadata:
+
+| Label | Số mẫu `tls_full_available=1` |
+|---|---:|
+| `label=0` | 112,771 |
+| `label=1` | 84 |
+
+CESNET timing check:
+
 - `cesnet_miner22`: 10,000 mẫu.
-- `mineshark_artifact`: 2,716 mẫu.
-- `auto_capture_hf`: 533 mẫu.
-- `cj_sniffer`: 218 mẫu.
+- 10,000/10,000 mẫu CESNET có `seq_iat` khác 0.
+- `timing_full_available=1` khi sequence timing được trích xuất từ PPI times.
 
-## 3. Mô tả chung về dữ liệu thu được
+## 5. Quy Tắc Privacy Và Provenance
 
-Mỗi dòng dữ liệu biểu diễn một flow hai chiều và có các nhóm thông tin chính:
+Dataset final không lưu:
 
-- metadata và provenance.
-- nhãn và độ tin cậy của nhãn.
-- đặc trưng flow cơ bản.
-- đặc trưng timing và burst/periodicity.
-- metadata TLS và certificate.
-- sequence packet-level đã cắt ngắn/padding.
-- cờ chất lượng mô tả mức độ đầy đủ của từng nhóm đặc trưng.
+- IP thô.
+- SNI thô.
+- Payload thô.
 
-Một số lưu ý quan trọng:
+Các giá trị nhạy cảm được hash bằng HMAC-SHA256 với salt local, sau đó truncate về 63-bit để lưu an toàn trong `int64`.
 
-- Dataset không chia sẵn train/validation/test.
-- Dataset final không chứa raw IP, raw SNI hoặc raw payload.
-- Các cột provenance như `source`, `source_file`, `source_record_id`, `original_label` được giữ để truy vết, nhưng không nên dùng làm input mặc định cho mô hình.
-- Dữ liệu có cả mẫu đầy đủ TLS lẫn mẫu thiếu TLS; schema vẫn thống nhất nhờ padding.
+Các cột hash/privacy:
 
-### Phân bố TLS và sequence
+- `src_ip_hash64`
+- `dst_ip_hash64`
+- `flow_key_hash64`
+- `sni_hash64`
+- `sni_tld_hash64`
+- `tls_version_hash64`
+- `cipher_hash64`
+- `alpn_hash64`
+- `ja3_hash64`
+- `ja3s_hash64`
+- `cert_subject_hash64`
+- `cert_issuer_hash64`
 
-Theo thống kê hiện tại, TLS metadata không xuất hiện đồng đều ở mọi nguồn. Dataset có cả mẫu có TLS và mẫu không có TLS để mô hình học được hai chế độ quan sát khác nhau.
+Các cột provenance như `source`, `source_role`, `source_file`, `source_record_id`, `original_label`, `hard_negative_type` giúp truy vết nguồn và debug. Không nên dùng các cột này làm feature mặc định vì dễ gây source leakage.
 
-Sequence packet-level cũng không đầy đủ cho mọi mẫu. Những nguồn từ CSV hoặc artifact có thể không có packet sequence đầy đủ, nên các cờ `packet_seq_available`, `timing_full_available` và `tls_metadata_available` cần được dùng để hiểu mức độ đầy đủ của từng mẫu.
+## 6. Các Nhóm Đặc Trưng Và Ý Nghĩa
 
-## 4. Các đặc trưng sử dụng và ý nghĩa
+Schema final có 97 cột. Danh sách đầy đủ kiểu dữ liệu và group nằm trong `schema.json` và `data_dictionary.md`.
 
-### 4.1 Flow features
+### 6.1 Metadata Và Label
 
-Đây là nhóm đặc trưng mô tả tổng quan một flow và là phần nền cho hầu hết mô hình tabular.
+| Feature | Ý nghĩa | Dùng cho model mặc định |
+|---|---|---:|
+| `sample_id` | ID ổn định của mẫu, sinh từ schema/source/flow/label. | Không |
+| `schema_version` | Version schema. | Không |
+| `source` | Tên nguồn dữ liệu. | Không |
+| `source_role` | Vai trò nguồn trong dataset. | Không |
+| `source_file` | File gốc sinh ra mẫu. | Không |
+| `source_record_id` | ID record trong nguồn gốc nếu có. | Không |
+| `original_label` | Label gốc trước khi map về 0/1. | Không |
+| `label` | Nhãn nhị phân: 1 mining, 0 non-mining. | Target |
+| `label_confidence` | Độ tin cậy nhãn, hiện chủ yếu là 1.0. | Không |
 
-Các biến chính gồm:
+### 6.2 Flow Features
 
-- `time_first`, `time_last`, `duration`: thời điểm bắt đầu/kết thúc và thời lượng flow.
-- `proto`: giao thức vận chuyển, hiện chủ yếu là `tcp`.
-- `src_port`, `dst_port`: cổng nguồn và đích.
-- `bytes_total`, `bytes_fwd`, `bytes_bwd`: tổng byte và phân rã theo chiều.
-- `packets_total`, `packets_fwd`, `packets_bwd`: tổng packet và phân rã theo chiều.
-- `byte_rate`, `packet_rate`: tốc độ truyền tải trung bình.
-- `bytes_ratio_fwd`, `packets_ratio_fwd`: tỷ lệ hướng thuận trong flow.
+Flow features mô tả tổng quan hành vi truyền dữ liệu của một flow.
 
-Ý nghĩa thực tế:
+| Feature | Ý nghĩa |
+|---|---|
+| `time_first` | Thời điểm bắt đầu flow, dạng epoch nếu nguồn có thời gian. |
+| `time_last` | Thời điểm kết thúc flow, dạng epoch nếu nguồn có thời gian. |
+| `duration` | Thời lượng flow. |
+| `proto` | Giao thức vận chuyển, ví dụ `tcp` hoặc `udp`. |
+| `src_port` | Cổng nguồn. |
+| `dst_port` | Cổng đích. |
+| `bytes_total` | Tổng số byte của flow. |
+| `bytes_fwd` | Byte chiều originator -> responder. |
+| `bytes_bwd` | Byte chiều responder -> originator. |
+| `packets_total` | Tổng số packet của flow. |
+| `packets_fwd` | Packet chiều originator -> responder. |
+| `packets_bwd` | Packet chiều responder -> originator. |
+| `byte_rate` | Byte trung bình trên giây. |
+| `packet_rate` | Packet trung bình trên giây. |
+| `bytes_ratio_fwd` | Tỷ lệ byte theo chiều forward. |
+| `packets_ratio_fwd` | Tỷ lệ packet theo chiều forward. |
 
-- Cryptomining thường có flow dài hơn, nhịp đều hơn và nhiều phiên lặp lại hơn so với non-mining.
-- Các tỷ lệ forward/backward và tốc độ truyền có thể giúp phân biệt giữa traffic handshake ngắn với session mining kéo dài.
+Ý nghĩa khi train mô hình:
 
-### 4.2 Timing patterns
+- Cryptomining thường có flow dài, lặp lại và duy trì kết nối ổn định.
+- `duration`, `packet_rate`, `byte_rate`, `bytes_ratio_fwd` và `packets_ratio_fwd` là baseline tốt cho mô hình tabular.
+- Không nên dùng raw IP, nhưng có thể dùng port và flow statistics.
 
-Nhóm timing mô tả nhịp điệu packet trong flow và là phần quan trọng để phân biệt cryptomining với lưu lượng TLS bình thường.
+### 6.3 Timing Patterns
 
-Các biến chính gồm:
+Timing patterns mô tả nhịp truyền packet. Đây là nhóm feature quan trọng vì cryptomining thường tạo traffic có nhịp đều, burst lặp lại và các khoảng cách packet có cấu trúc.
 
-- Thống kê độ dài packet: `pkt_len_mean`, `pkt_len_std`, `pkt_len_min`, `pkt_len_max`, `pkt_len_p10`, `pkt_len_p50`, `pkt_len_p90`.
-- Thống kê inter-arrival time: `iat_mean`, `iat_std`, `iat_min`, `iat_max`, `iat_p10`, `iat_p50`, `iat_p90`.
-- Đặc trưng biến thiên và phân bố: `iat_cv`, `iat_entropy`, `iat_zero_ratio`, `iat_small_ratio_10ms`.
-- Đặc trưng theo chiều: `fwd_iat_mean`, `bwd_iat_mean`, `fwd_bwd_iat_ratio`.
-- Burst và periodicity: `burst_count`, `burst_mean_packets`, `burst_max_packets`, `periodicity_autocorr_lag`, `periodicity_autocorr_score`, `periodicity_fft_peak`.
+#### Packet Length Statistics
 
-Ý nghĩa thực tế:
+| Feature | Ý nghĩa |
+|---|---|
+| `pkt_len_mean` | Độ dài packet trung bình. |
+| `pkt_len_std` | Độ lệch chuẩn độ dài packet. |
+| `pkt_len_min` | Độ dài packet nhỏ nhất. |
+| `pkt_len_max` | Độ dài packet lớn nhất. |
+| `pkt_len_p10` | Percentile 10 của độ dài packet. |
+| `pkt_len_p50` | Median độ dài packet. |
+| `pkt_len_p90` | Percentile 90 của độ dài packet. |
 
-- Traffic cryptomining thường có nhịp lặp ổn định, burst đều và khoảng cách giữa các packet tương đối có cấu trúc.
-- `iat_*` và các chỉ số periodicity hữu ích khi phát hiện hành vi mining chạy kéo dài và đều đặn.
-- `burst_*` hỗ trợ nhận ra các pha trao đổi packet ngắn nhưng lặp đi lặp lại.
+#### Inter-Arrival Time Statistics
 
-### 4.3 TLS Metadata
+| Feature | Ý nghĩa |
+|---|---|
+| `iat_mean` | Inter-arrival time trung bình. |
+| `iat_std` | Độ lệch chuẩn inter-arrival time. |
+| `iat_min` | IAT nhỏ nhất. |
+| `iat_max` | IAT lớn nhất. |
+| `iat_p10` | Percentile 10 của IAT. |
+| `iat_p50` | Median của IAT. |
+| `iat_p90` | Percentile 90 của IAT. |
+| `iat_cv` | Coefficient of variation của IAT. |
+| `iat_entropy` | Entropy của phân bố IAT. |
+| `iat_zero_ratio` | Tỷ lệ IAT bằng 0 hoặc gần 0 theo parser. |
+| `iat_small_ratio_10ms` | Tỷ lệ IAT nhỏ hơn 10 ms. |
 
-Nhóm TLS mô tả lớp bảo mật và dấu vân tay giao thức, là phần rất hữu ích khi phân tích cryptomining qua HTTPS/TLS.
+#### Directional Timing
 
-Các biến chính gồm:
+| Feature | Ý nghĩa |
+|---|---|
+| `fwd_iat_mean` | IAT trung bình theo chiều forward. |
+| `bwd_iat_mean` | IAT trung bình theo chiều backward. |
+| `fwd_bwd_iat_ratio` | Tỷ lệ nhịp forward/backward. |
 
-- `has_tls`, `tls_source`: cờ và kiểu nguồn TLS.
-- `tls_version_id`, `tls_version_hash64`: phiên bản TLS đã chuẩn hóa và hash tương ứng.
-- `cipher_id`, `cipher_hash64`: bộ mã hóa được dùng trong handshake.
-- `sni_hash64`, `sni_len`, `sni_num_labels`, `sni_entropy`, `sni_tld_hash64`: đặc trưng từ SNI, nhưng chỉ giữ dưới dạng hash/đặc trưng suy diễn, không lưu chuỗi thô.
-- `alpn_id`, `alpn_hash64`: ứng dụng lớp giao vận được quảng bá trong TLS.
-- `ja3_hash64`, `ja3s_hash64`: fingerprint của client và server hello khi có thể trích xuất.
-- `tls_resumed`, `tls_established`, `tls_handshake_seen`: trạng thái handshake và resumption.
-- `cert_observed`, `cert_subject_hash64`, `cert_issuer_hash64`, `cert_validity_days`, `cert_key_alg_id`, `cert_key_length`, `cert_sig_alg_id`, `cert_san_count`, `cert_self_signed`, `cert_chain_len`: nhóm đặc trưng certificate.
+#### Burst Và Periodicity
 
-Các giá trị categorical như TLS version, cipher, ALPN, certificate key algorithm và certificate signature algorithm được mã hóa bằng vocabulary trong `feature_vocab.json`. Giá trị `0` luôn đại diện cho `unknown`.
+| Feature | Ý nghĩa |
+|---|---|
+| `burst_count` | Số burst phát hiện trong flow. |
+| `burst_mean_packets` | Số packet trung bình trong mỗi burst. |
+| `burst_max_packets` | Số packet lớn nhất trong một burst. |
+| `periodicity_autocorr_lag` | Lag có autocorrelation cao nhất. |
+| `periodicity_autocorr_score` | Điểm autocorrelation tại lag tốt nhất. |
+| `periodicity_fft_peak` | Peak trong miền tần số từ chuỗi timing. |
 
-Ý nghĩa thực tế:
+Gợi ý sử dụng:
 
-- Nhiều mẫu mining dùng TLS ẩn danh, nên fingerprint TLS có thể rất giàu tín hiệu.
-- `tls_version_id`, `cipher_id`, `ja3_hash64`, `ja3s_hash64` và các đặc trưng certificate thường giúp mô hình phân biệt traffic mining với TLS hợp lệ khác.
-- Với mẫu thiếu TLS, các trường này được padding về 0 để giữ schema ổn định.
+- Với mô hình tabular, các feature `iat_*`, `burst_*`, `periodicity_*` thường là nhóm rất đáng thử.
+- Với mô hình sequence, nên dùng trực tiếp `seq_iat`, `seq_direction`, `seq_pkt_len`, `seq_signed_pkt_len`.
+- Luôn kiểm tra `timing_full_available` và `packet_seq_available` trước khi diễn giải timing.
 
-### 4.4 Sequence features
+### 6.4 TLS Metadata
 
-Nhóm này lưu chuỗi packet-level đã cắt ngắn và chuẩn hóa, phục vụ các mô hình có thể học từ trình tự.
+TLS metadata mô tả handshake, SNI đã ẩn danh, fingerprint và trạng thái TLS. Nhóm này hữu ích khi traffic mining được che bằng TLS hoặc HTTPS-like transport.
 
-Các biến chính gồm:
+| Feature | Ý nghĩa |
+|---|---|
+| `has_tls` | Flow có TLS metadata hoặc có thể được nhận diện là TLS. |
+| `tls_source` | Nguồn phát hiện TLS, ví dụ Zeek SSL log, heuristic port hoặc none. |
+| `tls_version_id` | ID phiên bản TLS theo vocabulary. |
+| `tls_version_hash64` | Hash của TLS version gốc. |
+| `cipher_id` | ID cipher suite theo vocabulary nếu map được. |
+| `cipher_hash64` | Hash của cipher suite. |
+| `sni_hash64` | HMAC hash của SNI, không lưu SNI thô. |
+| `sni_len` | Độ dài SNI. |
+| `sni_num_labels` | Số label/domain parts trong SNI. |
+| `sni_entropy` | Entropy của chuỗi SNI. |
+| `sni_tld_hash64` | Hash của TLD trong SNI. |
+| `alpn_id` | ID ALPN nếu có. |
+| `alpn_hash64` | Hash ALPN. |
+| `ja3_hash64` | Hash JA3 client fingerprint. |
+| `ja3s_hash64` | Hash JA3S server fingerprint. |
+| `tls_resumed` | TLS session có resumed hay không. |
+| `tls_established` | TLS session đã established hay không. |
+| `tls_handshake_seen` | Có quan sát được handshake hay không. |
 
-- `seq_len_stored`: số packet thật sự được giữ lại trong sequence.
-- `seq_pkt_len`: độ dài packet theo trị tuyệt đối.
-- `seq_signed_pkt_len`: độ dài packet có dấu để biểu diễn chiều.
-- `seq_direction`: chiều packet theo flow.
-- `seq_iat`: inter-arrival time giữa các packet liên tiếp.
+Gợi ý sử dụng:
 
-Các chuỗi đều được cắt ngắn/padding nhất quán, nên phù hợp cho mô hình sequence hoặc deep learning. Nếu một nguồn không có packet sequence đầy đủ, các cờ chất lượng sẽ phản ánh điều đó thay vì làm schema bị lệch.
+- `tls_version_id`, `cipher_hash64`, `ja3_hash64`, `ja3s_hash64` là các fingerprint mạnh, nhưng cần cẩn thận với overfitting theo nguồn.
+- `sni_len`, `sni_num_labels`, `sni_entropy` là feature suy diễn từ SNI mà không lộ SNI thô.
+- Với flow không TLS, các cột TLS được padding về 0 hoặc `unknown`.
+- Khi train nên dùng thêm `has_tls`, `tls_metadata_available`, `tls_full_available` như mask hoặc feature phụ.
 
-## 5. Hướng dẫn sử dụng file trong dữ liệu cuối cùng
+### 6.5 Certificate Metadata
 
-Các file chính trong `data/final/` hiện gồm:
+| Feature | Ý nghĩa |
+|---|---|
+| `cert_observed` | Có certificate được quan sát hay không. |
+| `cert_subject_hash64` | Hash subject certificate. |
+| `cert_issuer_hash64` | Hash issuer certificate. |
+| `cert_validity_days` | Số ngày hiệu lực certificate. |
+| `cert_key_alg_id` | ID thuật toán key của certificate. |
+| `cert_key_length` | Độ dài key. |
+| `cert_sig_alg_id` | ID thuật toán chữ ký. |
+| `cert_san_count` | Số SAN entries. |
+| `cert_self_signed` | Certificate self-signed hay không. |
+| `cert_chain_len` | Độ dài chain nếu có. |
 
-- `samples.parquet`: file chính, chứa toàn bộ cột và sequence arrays.
-- `samples.csv.gz`: bản xuất chỉ gồm các đặc trưng scalar, không gồm mảng sequence.
-- `schema.json`: mô tả schema, kiểu dữ liệu và giá trị padding của từng cột.
-- `feature_vocab.json`: mapping cho các categorical TLS values như TLS version, cipher, ALPN, certificate algorithms.
-- `manifest.json`: provenance tổng hợp của các file nguồn đã được sử dụng.
-- `provenance.parquet`: bảng truy vết chi tiết theo mẫu hoặc theo file nguồn.
-- `stats.json`: thống kê machine-readable cho dataset.
-- `stats_report.md`: bản tóm tắt thống kê và các cảnh báo/ghi chú.
-- `data_dictionary.md`: bảng mô tả cột theo dtype, group và khả năng dùng làm input.
+Certificate metadata có thể giúp phân biệt traffic TLS hợp lệ phổ biến với một số TLS endpoint bất thường. Tuy nhiên nhiều TLS 1.3 session hoặc capture giữa phiên có thể thiếu x509 đầy đủ.
 
-Khuyến nghị sử dụng:
+### 6.6 Packet Sequence Features
 
-- Dùng `samples.parquet` nếu cần sequence arrays hoặc muốn đọc đầy đủ schema.
-- Dùng `samples.csv.gz` nếu chỉ train mô hình tabular trên các đặc trưng scalar.
-- Dùng `schema.json` để kiểm tra kiểu cột và padding trước khi load dữ liệu vào pipeline.
-- Dùng `feature_vocab.json` để encode các trường categorical nhất quán giữa train và inference.
-- Dùng `provenance.parquet` khi cần debug, audit hoặc phân tích lỗi theo nguồn.
+Các cột sequence được giữ trong `samples.parquet`, không có trong `samples.csv.gz`.
 
-## 6. Gợi ý sử dụng bộ data để train mô hình
+| Feature | Ý nghĩa |
+|---|---|
+| `seq_len_stored` | Số packet được giữ trong sequence. |
+| `seq_pkt_len` | List độ dài packet. |
+| `seq_signed_pkt_len` | List độ dài packet có dấu theo chiều. |
+| `seq_direction` | List chiều packet. |
+| `seq_iat` | List inter-arrival time giữa các packet. |
 
-### 6.1 Nên và không nên dùng gì làm input
+Quy ước:
 
-Nên dùng:
+- Sequence được cắt ngắn theo `max_packets_store`.
+- Khi thiếu sequence, các list được padding rỗng/0 theo schema.
+- `seq_signed_pkt_len` giúp mô hình học đồng thời độ dài và hướng.
+- `seq_iat` là feature chính để học timing patterns dạng chuỗi.
 
-- flow features.
-- timing patterns.
-- TLS metadata đã hash/mã hóa.
-- sequence features nếu mô hình có khả năng xử lý chuỗi.
+### 6.7 Quality Flags Và Training Hints
 
-Không nên dùng mặc định:
+| Feature | Ý nghĩa |
+|---|---|
+| `packet_seq_available` | Có packet sequence hay không. |
+| `tls_metadata_available` | Có TLS metadata hay không. |
+| `tls_full_available` | Có TLS metadata đầy đủ hơn, thường từ Zeek SSL/X509. |
+| `timing_full_available` | Timing sequence/statistics có đủ tin cậy hay không. |
+| `possible_tls_port` | Port có khả năng là TLS dù không có metadata đầy đủ. |
+| `extract_status` | Trạng thái extract. |
+| `quality_notes` | Ghi chú chất lượng, nếu có. |
+| `hard_negative_type` | Loại hard negative, dùng cho provenance/audit. |
+| `sample_weight_suggested` | Trọng số gợi ý nếu muốn dùng trong training. |
 
-- `source`, `source_file`, `source_record_id`, `original_label`.
-- mọi trường provenance và audit.
-- bất kỳ trường raw nào không nằm trong final schema.
+## 7. Hướng Dẫn Sử Dụng Các File Final
 
-### 6.2 Cách chia train/validation/test
+Các file trong `data/final/`:
 
-Dataset này chưa có split sẵn. Khi tạo split, nên ưu tiên:
+| File | Mục đích |
+|---|---|
+| `samples.parquet` | File chính, chứa toàn bộ feature, bao gồm sequence arrays. |
+| `samples.csv.gz` | Bản CSV nén chỉ chứa scalar features, bỏ sequence arrays. |
+| `schema.json` | Schema machine-readable: dtype, padding, group và cờ model input. |
+| `feature_vocab.json` | Vocabulary cho các categorical TLS/certificate IDs. |
+| `manifest.json` | Manifest của raw files: path, size, SHA256, source, record URL. |
+| `provenance.parquet` | Bảng truy vết source/source_file/original_label theo sample. |
+| `stats.json` | Thống kê dataset dạng JSON. |
+| `stats_report.md` | Báo cáo thống kê ngắn dạng Markdown. |
+| `data_dictionary.md` | Data dictionary dạng bảng từ schema. |
+| `description.md` | File mô tả tổng quan này. |
 
-- group split theo source hoặc source_file để tránh leakage.
-- kiểm tra cân bằng label sau khi split.
-- tách riêng đánh giá theo nguồn để đo khả năng tổng quát hóa.
+Ví dụ đọc dữ liệu:
 
-### 6.3 Lưu ý về mất cân bằng và coverage
+```python
+import pandas as pd
 
-Dataset hiện khá lệch về label `0`, nên khi train cần cân nhắc:
+df = pd.read_parquet("data/final/samples.parquet")
+print(df.shape)
+print(df["label"].value_counts())
+```
 
-- class weighting hoặc focal loss.
-- downsampling/upsampling có kiểm soát trên train set בלבד.
-- đo thêm PR-AUC, F1 và recall cho label `1`, không chỉ accuracy.
+Nếu chỉ dùng mô hình tabular:
 
-Ngoài ra, coverage TLS và sequence không đồng đều giữa các nguồn. Vì vậy:
+```python
+import pandas as pd
 
-- mô hình tabular nên học tốt cả trường hợp không có TLS.
-- mô hình sequence nên xử lý được missing sequence một cách rõ ràng.
-- nên dùng các cờ `has_tls`, `packet_seq_available`, `tls_metadata_available` như feature phụ hoặc như mask logic trong pipeline.
+df = pd.read_csv("data/final/samples.csv.gz")
+```
 
-### 6.4 Gợi ý thực nghiệm
+Nếu muốn chọn feature mặc định theo schema:
 
-- Bắt đầu bằng mô hình tabular trên các feature scalar để có baseline ổn định.
-- Sau đó thử kết hợp thêm sequence features để khai thác nhịp packet và burst pattern.
-- Nếu dùng model học sâu, giữ chuẩn hóa và padding nhất quán giữa train và inference.
-- Khi báo cáo kết quả, nên có thêm đánh giá theo từng nguồn để tránh mô hình học quá mạnh vào đặc trưng của một dataset cụ thể.
+```python
+import json
+import pandas as pd
 
-## 7. Ghi chú cuối
+with open("data/final/schema.json", "r", encoding="utf-8") as f:
+    schema = json.load(f)
 
-- Dataset này là bản V1 và ưu tiên tính nhất quán schema, truy vết nguồn và khả năng huấn luyện hơn là tối ưu hóa một model cụ thể.
-- Các giá trị thiếu được padding nhất quán để cùng một schema có thể dùng cho nhiều kiểu mô hình khác nhau.
-- Nếu cần phân tích sâu theo nguồn hoặc theo mức độ đầy đủ của TLS/sequence, hãy dùng thêm `stats.json`, `stats_report.md` và `provenance.parquet`.
+feature_cols = [
+    c["name"]
+    for c in schema["columns"]
+    if c.get("can_use_for_model_input") is True
+]
+
+df = pd.read_parquet("data/final/samples.parquet")
+X = df[feature_cols]
+y = df["label"]
+```
+
+Khi dùng `samples.csv.gz`, cần loại các feature list khỏi `feature_cols` nếu chúng không có trong CSV.
+
+## 8. Gợi Ý Train Mô Hình
+
+### 8.1 Baseline Nên Thử Trước
+
+Nên bắt đầu với mô hình tabular:
+
+- Logistic Regression hoặc Linear SVM cho baseline đơn giản.
+- Random Forest, XGBoost, LightGBM hoặc CatBoost cho baseline mạnh hơn.
+- Feature groups nên thử: flow + timing + TLS scalar + certificate scalar + quality flags.
+
+Sau đó mới thử mô hình sequence:
+
+- 1D CNN trên `seq_signed_pkt_len`, `seq_direction`, `seq_iat`.
+- GRU/LSTM/Transformer nhỏ cho packet sequence.
+- Hybrid model: tabular branch + sequence branch.
+
+### 8.2 Split Dữ Liệu
+
+Không nên random split đơn giản toàn bộ dataset nếu mục tiêu là đánh giá khả năng tổng quát hóa. Nên dùng:
+
+- Group split theo `source_file`.
+- Hoặc leave-one-source-out evaluation.
+- Hoặc train trên nhiều source và test riêng theo từng source.
+
+Lý do: nếu random split, mô hình có thể học đặc trưng riêng của capture/source thay vì học hành vi cryptomining thật.
+
+### 8.3 Xử Lý Mất Cân Bằng
+
+Dataset hiện lệch mạnh về `label=0`. Khi train nên cân nhắc:
+
+- `class_weight`.
+- Focal loss nếu dùng neural network.
+- Downsample `label=0` trong train set, không downsample validation/test.
+- Báo cáo thêm PR-AUC, recall, precision, F1 cho `label=1`, không chỉ accuracy.
+
+### 8.4 Dùng TLS Và Timing Một Cách Cẩn Thận
+
+TLS metadata rất hữu ích nhưng dễ overfit theo endpoint, JA3 hoặc source. Timing patterns có thể tổng quát hóa tốt hơn trong một số bối cảnh, nhưng cũng phụ thuộc capture environment.
+
+Khuyến nghị:
+
+- Train/evaluate riêng các ablation:
+  - Flow only.
+  - Flow + timing.
+  - Flow + TLS.
+  - Flow + timing + TLS.
+  - Sequence only.
+  - Hybrid scalar + sequence.
+- Luôn báo cáo performance theo `source`.
+- Kiểm tra performance riêng trên mẫu `has_tls=1` và `has_tls=0`.
+
+### 8.5 Các Cột Không Nên Dùng Làm Feature Mặc Định
+
+Không nên đưa trực tiếp vào model:
+
+- `sample_id`
+- `schema_version`
+- `source`
+- `source_role`
+- `source_file`
+- `source_record_id`
+- `original_label`
+- `hard_negative_type`
+- `extract_status`
+- `quality_notes`
+- `sample_weight_suggested`
+
+Những cột này hữu ích cho audit, split, debugging hoặc weighting, nhưng có nguy cơ leakage nếu dùng trực tiếp làm feature.
+
+## 9. Lưu Ý Về Phiên Bản V1
+
+Bản V1 ưu tiên:
+
+- Schema ổn định.
+- Không lộ raw private fields.
+- Có đủ coverage từ nhiều nguồn.
+- Có cả flow features, TLS metadata và timing/sequence patterns.
+- Có provenance để audit.
+
+Các giới hạn hiện tại:
+
+- Dataset chưa được cân bằng lại.
+- Chưa có train/validation/test split chính thức.
+- Một số nguồn có metadata không đầy đủ.
+- `cj_sniffer` không đạt điều kiện encrypted-only vì label gốc hiện là `encrypted=no` toàn bộ.
+- `cesnet_miner22` và `iot23_mcfp` đang dùng local row cap để build được trên máy hiện tại; raw data vẫn còn trong `data/raw` để mở rộng khi cần.
+
+Khi dùng cho nghiên cứu hoặc training production-like, nên tạo split theo group/source, chạy ablation và kiểm tra khả năng tổng quát hóa theo từng nguồn.
