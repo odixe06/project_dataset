@@ -5,6 +5,4 @@ __pycache__/
 data/raw/
 data/staging/
 data/interim/
-data/final/*.parquet
-data/final/*.gz
 logs/
