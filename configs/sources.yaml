@@ -1,0 +1,74 @@
+auto_capture_hf:
+  type: "huggingface_dataset"
+  repo_id: "mdokl/Auto-capture-cryptomining-data"
+  repo_type: "dataset"
+  record_url: "https://huggingface.co/datasets/mdokl/Auto-capture-cryptomining-data"
+  local_dir: "data/raw/mining/auto_capture_hf"
+  source_role: "mining_tls"
+  expected_file_types: ["pcap"]
+
+cesnet_miner22:
+  type: "zenodo"
+  record_url: "https://zenodo.org/records/7189293"
+  url: "https://zenodo.org/records/7189293/files/DeCryptoDatasets.tar.gz?download=1"
+  local_file: "data/raw/mining/cesnet_miner22/DeCryptoDatasets.tar.gz"
+  source_role: "flow_scale"
+  expected_file_types: ["csv"]
+
+cj_sniffer:
+  type: "git"
+  url: "https://github.com/yebof/CJ-Sniffer-Dataset.git"
+  record_url: "https://github.com/yebof/CJ-Sniffer-Dataset"
+  local_dir: "data/raw/mining/cj_sniffer"
+  source_role: "mining_encrypted"
+  expected_file_types: ["pcap", "csv"]
+
+mineshark_artifact:
+  type: "zenodo"
+  record_url: "https://zenodo.org/records/13630503"
+  url: "https://zenodo.org/records/13630503/files/MineShark_AE.tar.gz?download=1"
+  local_file: "data/raw/mining/mineshark_artifact/MineShark_AE.tar.gz"
+  md5: "7c09b8601045a76705bfc6072d6607d4"
+  source_role: "mining_obfuscated_perturbed"
+  expected_file_types: ["pcap", "csv", "parquet"]
+
+hikari2021:
+  type: "zenodo_multi"
+  record_url: "https://zenodo.org/records/5199540"
+  source_role: "non_mining_tls_benign"
+  files:
+    - url: "https://zenodo.org/records/5199540/files/ALLFLOWMETER_HIKARI2021.csv.zip?download=1"
+      local_file: "data/raw/non_mining/hikari2021/ALLFLOWMETER_HIKARI2021.csv.zip"
+      md5: "d7d9e277fe4a66cb00764d7f91a810dd"
+    - url: "https://zenodo.org/records/5199540/files/ground-truth.zip?download=1"
+      local_file: "data/raw/non_mining/hikari2021/ground-truth.zip"
+      md5: "a940cca16c3f1051e0de30f22bb843de"
+    - url: "https://zenodo.org/records/5199540/files/BRUTEFORCE_HTTPS%2Fpcap%2FFriday_2021-04-16_2304.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/BRUTEFORCE_HTTPS/Friday_2021-04-16_2304.pcap"
+      md5: "9c2289201d14e99c904a0b36c97dabff"
+    - url: "https://zenodo.org/records/5199540/files/BRUTEFORCE_HTTPS%2Fpcap%2FSunday_2021-04-11_2154.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/BRUTEFORCE_HTTPS/Sunday_2021-04-11_2154.pcap"
+      md5: "6e3539c687d70941c60f8cd4c83ee48c"
+    - url: "https://zenodo.org/records/5199540/files/BRUTEFORCE_XML%2Fpcap%2FMonday_2021-04-12_0611.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/BRUTEFORCE_XML/Monday_2021-04-12_0611.pcap"
+      md5: "ec97d152f8e8582dd093873d40e8c9b4"
+    - url: "https://zenodo.org/records/5199540/files/BRUTEFORCE_XML%2Fpcap%2FSaturday_2021-04-17_0357.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/BRUTEFORCE_XML/Saturday_2021-04-17_0357.pcap"
+      md5: "5eedb82e01b0391d69c4e8589fc81f09"
+    - url: "https://zenodo.org/records/5199540/files/SCANCMS%2Fpcap%2FSunday_2021-05-02_1206.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/SCANCMS/Sunday_2021-05-02_1206.pcap"
+      md5: "21a44865c0cdd6fa417e28e69170aa84"
+    - url: "https://zenodo.org/records/5199540/files/SCANCMS%2Fpcap%2FSunday_2021-05-02_1659.pcap?download=1"
+      local_file: "data/raw/non_mining/hikari2021/pcap/SCANCMS/Sunday_2021-05-02_1659.pcap"
+      md5: "39ef0e9ad6301268029bd54be02d4529"
+
+iot23_mcfp:
+  type: "tar"
+  record_url: "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/"
+  full_url: "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/iot_23_datasets_full.tar.gz"
+  small_url: "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/iot_23_datasets_small.tar.gz"
+  local_file: "data/raw/non_mining/iot23_mcfp/iot_23_datasets_full.tar.gz"
+  fallback_local_file: "data/raw/non_mining/iot23_mcfp/iot_23_datasets_small.tar.gz"
+  source_role: "non_mining_iot_or_hard_negative"
+  expected_file_types: ["pcap", "zeek_log"]
+

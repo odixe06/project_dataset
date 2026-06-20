@@ -1,5 +1,0 @@
-# Local-only privacy configuration.
-# Replace this in your private workspace or set DATASET_PRIVACY_SALT at runtime.
-hash_method: "hmac_sha256_truncated_63bit"
-salt: "CHANGE_ME_LOCAL_ONLY"
-

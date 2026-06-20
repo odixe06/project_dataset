@@ -1,0 +1,11 @@
+regime,feature_group,n,spearman_rho,spearman_p,pearson_r,pearson_p
+benign_holdout,flow_only,2,,,,
+benign_holdout,flow_timing,2,,,,
+benign_holdout,flow_timing_tls,2,,,,
+benign_holdout,flow_tls,2,,,,
+mining_holdout,flow_only,3,1.0,0.0,0.985,0.11
+mining_holdout,flow_timing,3,-0.5,0.667,-0.69,0.515
+mining_holdout,flow_timing_tls,3,-0.5,0.667,-0.73,0.479
+mining_holdout,flow_tls,3,-0.5,0.667,-0.198,0.873
+benign_holdout,ALL,8,-0.204,0.629,0.239,0.568
+mining_holdout,ALL,12,-0.049,0.879,0.075,0.816

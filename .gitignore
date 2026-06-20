@@ -1,9 +1,38 @@
-# Local workspace/session outputs and private files
-local/
-
-# Python virtualenv
+# Python
 .venv/
-
-# Byte-compiled / cache
 __pycache__/
 *.py[cod]
+.pytest_cache/
+
+# Local workspace / private files
+local/
+configs/privacy.local.yaml
+
+# Raw / intermediate dataset stages (regenerable from scripts/00_*-13_*)
+data/raw/
+data/staging/
+data/interim/
+data/tmp_*
+logs/
+
+# Uncompressed CSV duplicates (use .csv.gz instead)
+data/final/samples.csv
+
+# Large derivable evaluation artifacts (regenerable via build_evaluation_artifacts.py)
+# Keep the small summary CSVs and READMEs; ignore the bulk join tables.
+data/final/evaluation/01_source_file_group_holdout/source_holdout_membership.csv.gz
+data/final/evaluation/03_deduplicated_feature_groups/dedup_group_summary.csv.gz
+data/final/evaluation/04_feature_group_ablations/flow_*.csv.gz
+
+# Benchmark cache (regenerable via 15_cross_source_benchmark.py --rebuild-cache)
+data/final/evaluation/05_cross_source_benchmark/_subsampled_cache.parquet
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local-only reference files (kept out of public repo by author choice)
+CLAUDE.md
+2025-402-paper.md
+samplepaper.tex

@@ -1,7 +1,0 @@
-fold_id,heldout_source,heldout_role,train_count,train_label_0,train_label_1,test_count,test_label_0,test_label_1,note
-holdout_source__auto_capture_hf,auto_capture_hf,mining_source,415137,402203,12934,533,0,533,heldout test has only mining labels
-holdout_source__cesnet_miner22,cesnet_miner22,mining_source,405670,402203,3467,10000,0,10000,heldout test has only mining labels
-holdout_source__cj_sniffer,cj_sniffer,mining_source,415452,402203,13249,218,0,218,heldout test has only mining labels
-holdout_source__hikari2021,hikari2021,non_mining_source,186581,173114,13467,229089,229089,0,heldout test has only non-mining labels
-holdout_source__iot23_mcfp,iot23_mcfp,non_mining_source,242556,229089,13467,173114,173114,0,heldout test has only non-mining labels
-holdout_source__mineshark_artifact,mineshark_artifact,mining_source,412954,402203,10751,2716,0,2716,heldout test has only mining labels

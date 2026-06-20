@@ -1,0 +1,4 @@
+config,n_features,n_train,n_test,n_pos_test,fpr_iot23
+flow_only_no_tls,14,67710,43041,0,0.9981
+flow_only_plus_has_tls,15,67710,43041,0,1.0
+flow_tls_full,42,67710,43041,0,1.0

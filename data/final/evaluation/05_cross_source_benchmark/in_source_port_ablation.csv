@@ -1,0 +1,9 @@
+feature_group,variant,n_features,f1_pos,recall_pos,precision_pos
+flow_only,with_ports,14,0.9972,0.9981,0.9963
+flow_only,without_ports,12,0.9942,0.9963,0.9921
+flow_timing,with_ports,41,0.9995,0.9991,1.0
+flow_timing,without_ports,39,0.9995,0.9991,1.0
+flow_tls,with_ports,42,0.9984,0.9995,0.9972
+flow_tls,without_ports,40,0.9974,0.9986,0.9963
+flow_timing_tls,with_ports,69,0.9995,0.9991,1.0
+flow_timing_tls,without_ports,67,0.9995,0.9991,1.0

@@ -1,0 +1,58 @@
+schema_version: "mining_dataset_v1"
+random_seed: 42
+tcp_only: true
+min_packets_per_flow: 3
+
+sequence:
+  max_packets_store: 256
+  store_signed_lengths: true
+  store_iat: true
+  store_direction: true
+
+source_row_limits:
+  # Local V1 safety caps for sources that are very large on an 8 GB RAM machine.
+  # Raw files stay intact under data/raw; raise these for a full-size rebuild.
+  cesnet_miner22: 10000
+  hikari2021: 120000
+  iot23_mcfp: 200000
+  iot23_mcfp_per_file: 10000
+
+merge:
+  time_tolerance_seconds: 1.0
+
+tls_padding:
+  no_tls_numeric: 0
+  no_tls_categorical: "unknown"
+  no_tls_hash: 0
+
+privacy:
+  hash_ips: true
+  hash_sni: true
+  keep_raw_sni_in_final: false
+  keep_raw_payload: false
+
+label_policy:
+  auto_capture_hf: 1
+  cj_sniffer: 1
+  mineshark_artifact: 1
+  hikari2021: 0
+  iot23_mcfp: 0
+  cesnet_miner22:
+    Miner: 1
+    Other: 0
+
+quality_gates:
+  require_label_values: [0, 1]
+  require_label1_tls_full: true
+  require_label0_hikari_tls_full: true
+  require_sources:
+    - cesnet_miner22
+    - cj_sniffer
+    - mineshark_artifact
+    - hikari2021
+    - iot23_mcfp
+
+export:
+  format: ["parquet", "csv.gz"]
+  parquet_compression: "zstd"
+  split_train_test: false

@@ -1,0 +1,6 @@
+source_a,auto_capture_hf,cesnet_miner22,cj_sniffer,hikari2021,iot23_mcfp
+auto_capture_hf,0.0,0.8238,0.8189,0.7995,0.7776
+cesnet_miner22,0.8238,0.0,0.7511,0.7208,0.8735
+cj_sniffer,0.8189,0.7511,0.0,0.7094,0.777
+hikari2021,0.7995,0.7208,0.7094,0.0,0.8811
+iot23_mcfp,0.7776,0.8735,0.777,0.8811,0.0

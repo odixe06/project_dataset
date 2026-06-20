@@ -1,0 +1,5 @@
+feature_group,hikari2021,iot23_mcfp
+flow_only,0.6081391878368652,0.9980948398039079
+flow_timing,0.0,0.03775469900792268
+flow_timing_tls,0.0,1.0
+flow_tls,0.6472901560771783,1.0
